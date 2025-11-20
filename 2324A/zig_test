@@ -1,0 +1,72 @@
+#!/bin/env python3
+from argparse import ArgumentParser
+from functools import cache
+from io import StringIO
+from itertools import islice
+from random import Random
+from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
+from sys import stderr
+
+def f(s, p0=None, p1=None):
+    if not s: return 1
+    ans = 0
+    for i in range(len(s)):
+        if p0 is None or not (p0 <= p1 <= s[i] or p0 >= p1 >= s[i]):
+            ans += f(s[:i] + s[i+1:], p1, s[i])
+
+    return ans
+
+@cache
+def solve(n):
+    return f([*range(n)])
+
+class WA(Exception):
+    pass
+
+class TLE(Exception):
+    pass
+
+class RTE(Exception):
+    pass
+
+def test_on(command, n, *, time_limit):
+    print("TESTING CASE", file=stderr)
+    s = StringIO()
+    print(n, file=s)
+
+    try:
+        res = run(command, input=s.getvalue().encode('utf-8'), stdout=PIPE, timeout=time_limit + 0.01, check=True).stdout
+    except TimeoutExpired:
+        raise TLE
+    except CalledProcessError:
+        raise RTE
+    if res.decode('utf-8').strip() != str(solve(n)):
+        raise WA
+
+
+
+def main():
+    parser = ArgumentParser()
+
+    parser.add_argument('command', nargs='*')
+    parser.add_argument('-tl', '--time-limit', type=int, default=12)
+
+    args = parser.parse_args()
+
+    rand = Random(11)
+
+    print(f"THE TIME LIMIT IS {args.time_limit} SEC")
+    try:
+        for n in range(1, 12+1):
+            test_on(args.command, n, time_limit=args.time_limit)
+    except TLE:
+        print("TIME LIMIT EXCEEDED!!!", file=stderr)
+    except RTE:
+        print("RUNTIME ERROR!!!", file=stderr)
+    except WA:
+        print("WRONG ANSWER!!!", file=stderr)
+    else:
+        print("ACCEPTED!!!", file=stderr)
+
+if __name__ == '__main__':
+    main()

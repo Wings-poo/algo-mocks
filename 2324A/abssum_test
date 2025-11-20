@@ -1,0 +1,100 @@
+#!/bin/env python3
+from argparse import ArgumentParser
+from io import StringIO
+from itertools import islice
+from random import Random
+from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
+from sys import stderr
+
+def make(seed, n, d, V):
+    rand = Random(seed)
+    assert 1 <= d <= n
+    vs = rand.sample(range(1, V+1), d)
+    def vals():
+        yield from vs
+        while True: yield rand.choice(vs)
+    a = [*islice(vals(), n)]
+    rand.shuffle(a)
+    assert {*a} == {*vs}
+    assert len({*vs}) == len(vs) == d
+    assert len(a) == n
+
+    return a
+
+def solve(a):
+    from itertools import permutations
+    a = sorted(a)
+    r = 0
+    while len(a) >= 5:
+        r += (a[-1] - a[0]) * 2
+        a = a[1:-1]
+    return r + max(sum(abs(x - y) for x, y in zip(p, p[1:])) for p in permutations(a))
+
+
+class WA(Exception):
+    pass
+
+class TLE(Exception):
+    pass
+
+class RTE(Exception):
+    pass
+
+def test_on(command, a, *, time_limit):
+    print("TESTING CASE", file=stderr)
+    s = StringIO()
+    print(len(a), file=s)
+    print(*a, file=s)
+
+    try:
+        res = run(command, input=s.getvalue().encode('utf-8'), stdout=PIPE, timeout=time_limit + 0.01, check=True).stdout
+    except TimeoutExpired:
+        raise TLE
+    except CalledProcessError:
+        raise RTE
+    if res.decode('utf-8').strip() != str(solve(a)):
+        raise WA
+
+
+
+def main():
+    parser = ArgumentParser()
+
+    parser.add_argument('command', nargs='*')
+    parser.add_argument('-tl', '--time-limit', type=int, default=12)
+
+    args = parser.parse_args()
+
+    rand = Random(11)
+
+    V = 10**8
+    print(f"THE TIME LIMIT IS {args.time_limit} SEC")
+    def nvs():
+        for n in 2, 3, 9, 10:
+            for v in range(1, n+1):
+                yield n, v
+
+        for n in 4, 5, 6, 7, 8:
+            for v in 1, 2, 5, n:
+                yield n, v
+    try:
+        test_on(args.command, [1, V], time_limit=args.time_limit)
+        test_on(args.command, [1, V]*5, time_limit=args.time_limit)
+        test_on(args.command, [1, V]*4, time_limit=args.time_limit)
+        test_on(args.command, [1] + [V]*9, time_limit=args.time_limit)
+        test_on(args.command, [V] + [1]*9, time_limit=args.time_limit)
+        for n, v in sorted({*nvs()}):
+            if 1 <= v <= n:
+                test_on(args.command, make(rand.getrandbits(32), n, v, V), time_limit=args.time_limit)
+
+    except TLE:
+        print("TIME LIMIT EXCEEDED!!!", file=stderr)
+    except RTE:
+        print("RUNTIME ERROR!!!", file=stderr)
+    except WA:
+        print("WRONG ANSWER!!!", file=stderr)
+    else:
+        print("ACCEPTED!!!", file=stderr)
+
+if __name__ == '__main__':
+    main()
