@@ -9,7 +9,6 @@ using namespace std;
 
 int main ()
 {
-    /*
     int count = 1;
     int N = 1;
     while (count < 1500) {
@@ -25,8 +24,7 @@ int main ()
             count++;
     }
     cout << "The 1500'th ugly number is " << N << "." << endl;
-    */
     
-    cout << "The 1500'th ugly number is 859963392." << endl;
+    // cout << "The 1500'th ugly number is 859963392." << endl;
     return 0;
 }
